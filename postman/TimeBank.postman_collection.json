@@ -1,0 +1,1129 @@
+{
+  "info": {
+    "_postman_id": "8f4d3b1e-6a2c-4c7e-9b1a-2f6d8e0c4a11",
+    "name": "TimeBank Backend",
+    "description": "End-to-end collection for the TimeBank API. Run the whole collection in order. It creates two fresh members per run, completes one exchange, checks balances, reviews, suspension with an old JWT, moderator category CRUD, and audit logging. Start the API first (see README) and make sure the database is seeded.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// A new run id is generated when the collection starts at '00 - Health'.",
+          "// This keeps emails and category names unique across repeated Collection Runner runs.",
+          "const isStart = pm.info.requestName === '00 - Health';",
+          "if (isStart || !pm.collectionVariables.get('runId')) {",
+          "    const runId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;",
+          "    pm.collectionVariables.set('runId', runId);",
+          "    pm.collectionVariables.set('requesterEmail', `timebank.requester.${runId}@example.test`);",
+          "    pm.collectionVariables.set('helperEmail', `timebank.helper.${runId}@example.test`);",
+          "    pm.collectionVariables.set('categoryName', `Postman Category ${runId}`);",
+          "}"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5080" },
+    { "key": "password", "value": "Test@2026!" },
+    { "key": "moderatorEmail", "value": "mona.adel@sa3a.test" },
+    { "key": "moderatorPassword", "value": "Sa3a@2026" },
+    { "key": "neededBy", "value": "2026-12-31" },
+    { "key": "requestedHours", "value": "1.5" },
+    { "key": "categoryId", "value": "1" },
+    { "key": "runId", "value": "" },
+    { "key": "requesterEmail", "value": "" },
+    { "key": "helperEmail", "value": "" },
+    { "key": "categoryName", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "00 - Health",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Health endpoint returns 200 and Healthy', function () {",
+              "    pm.response.to.have.status(200);",
+              "    pm.expect(pm.response.text()).to.include('Healthy');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/health"
+      },
+      "response": []
+    },
+    {
+      "name": "01 - Public stats",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Stats endpoint returns the community counters', function () {",
+              "    pm.response.to.have.status(200);",
+              "    const body = pm.response.json();",
+              "    pm.expect(body.members).to.be.at.least(10);",
+              "    pm.expect(body).to.have.property('openRequests');",
+              "    pm.expect(body).to.have.property('hoursExchanged');",
+              "    pm.expect(body.topHelpersThisMonth).to.be.an('array');",
+              "    pm.expect(body.categoryDemand).to.be.an('array');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/api/stats"
+      },
+      "response": []
+    },
+    {
+      "name": "02 - Categories and skills",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Categories are seeded with their skills', function () {",
+              "    pm.response.to.have.status(200);",
+              "    const body = pm.response.json();",
+              "    pm.expect(body).to.be.an('array');",
+              "    pm.expect(body.length).to.be.at.least(10);",
+              "    const homeRepair = body.find(c => c.name === 'Home Repair');",
+              "    pm.expect(homeRepair, 'Home Repair category').to.exist;",
+              "    pm.expect(homeRepair.skills.length).to.be.greaterThan(0);",
+              "    pm.collectionVariables.set('categoryId', homeRepair.id);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/api/categories"
+      },
+      "response": []
+    },
+    {
+      "name": "03 - Register requester with skills",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Requester registration returns 201, a JWT, and Member role', function () {",
+              "    pm.response.to.have.status(201);",
+              "    const body = pm.response.json();",
+              "    pm.expect(body.token).to.be.a('string').and.not.empty;",
+              "    pm.expect(body.member.role).to.eql('Member');",
+              "    pm.expect(body.member.isSuspended).to.eql(false);",
+              "    pm.collectionVariables.set('requesterToken', body.token);",
+              "    pm.collectionVariables.set('requesterId', body.member.id);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json", "type": "text" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fullName\": \"Postman Requester {{runId}}\",\n  \"email\": \"{{requesterEmail}}\",\n  \"password\": \"{{password}}\",\n  \"district\": \"Nasr City\",\n  \"bio\": \"Created by the Postman end-to-end collection.\",\n  \"skills\": [\n    { \"skillId\": 6, \"level\": \"Intermediate\" }\n  ]\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": "{{baseUrl}}/api/auth/register"
+      },
+      "response": []
+    },
+    {
+      "name": "04 - Register helper with a Home Repair skill",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Helper registration returns 201 and a JWT', function () {",
+              "    pm.response.to.have.status(201);",
+              "    const body = pm.response.json();",
+              "    pm.expect(body.token).to.be.a('string').and.not.empty;",
+              "    pm.expect(body.member.role).to.eql('Member');",
+              "    pm.collectionVariables.set('helperToken', body.token);",
+              "    pm.collectionVariables.set('helperId', body.member.id);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json", "type": "text" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fullName\": \"Postman Helper {{runId}}\",\n  \"email\": \"{{helperEmail}}\",\n  \"password\": \"{{password}}\",\n  \"district\": \"Nasr City\",\n  \"bio\": \"Plumber created by the Postman end-to-end collection.\",\n  \"skills\": [\n    { \"skillId\": 1, \"level\": \"Expert\" }\n  ]\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": "{{baseUrl}}/api/auth/register"
+      },
+      "response": []
+    },
+    {
+      "name": "05 - Login seeded moderator",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Moderator login returns 200 and the Moderator role', function () {",
+              "    pm.response.to.have.status(200);",
+              "    const body = pm.response.json();",
+              "    pm.expect(body.member.role).to.eql('Moderator');",
+              "    pm.collectionVariables.set('moderatorToken', body.token);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json", "type": "text" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{moderatorEmail}}\",\n  \"password\": \"{{moderatorPassword}}\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": "{{baseUrl}}/api/auth/login"
+      },
+      "response": []
+    },
+    {
+      "name": "06 - Requester creates a 1.5 hour request",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Create request returns 201 and Open status', function () {",
+              "    pm.response.to.have.status(201);",
+              "    const body = pm.response.json();",
+              "    pm.expect(body.status).to.eql('Open');",
+              "    pm.expect(body.estimatedHours).to.eql(1.5);",
+              "    pm.expect(pm.response.headers.get('Location')).to.include('/api/requests/');",
+              "    pm.collectionVariables.set('requestId', body.id);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json", "type": "text" },
+          { "key": "Authorization", "value": "Bearer {{requesterToken}}", "type": "text" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Postman washing machine {{runId}}\",\n  \"description\": \"The machine leaks after every wash. This request is created by the Postman collection.\",\n  \"categoryId\": {{categoryId}},\n  \"district\": \"Nasr City\",\n  \"estimatedHours\": {{requestedHours}},\n  \"neededBy\": \"{{neededBy}}\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": "{{baseUrl}}/api/requests"
+      },
+      "response": []
+    },
+    {
+      "name": "07 - Error: invalid estimated hours -> 400",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Estimated hours above 8 are rejected with 400', function () {",
+              "    pm.response.to.have.status(400);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json", "type": "text" },
+          { "key": "Authorization", "value": "Bearer {{requesterToken}}", "type": "text" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Invalid hours {{runId}}\",\n  \"description\": \"This request must be rejected by validation.\",\n  \"categoryId\": {{categoryId}},\n  \"district\": \"Nasr City\",\n  \"estimatedHours\": 9,\n  \"neededBy\": \"{{neededBy}}\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": "{{baseUrl}}/api/requests"
+      },
+      "response": []
+    },
+    {
+      "name": "08 - Helper sends an offer",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Helper with the category skill can send an offer', function () {",
+              "    pm.response.to.have.status(201);",
+              "    const body = pm.response.json();",
+              "    pm.expect(body.id).to.be.a('number');",
+              "    pm.collectionVariables.set('offerId', body.id);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json", "type": "text" },
+          { "key": "Authorization", "value": "Bearer {{helperToken}}", "type": "text" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"message\": \"I am a plumber and can come Thursday.\",\n  \"hours\": 1.5\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": "{{baseUrl}}/api/requests/{{requestId}}/offers"
+      },
+      "response": []
+    },
+    {
+      "name": "09 - Error: duplicate offer -> 409",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('A second offer from the same member is a 409 CONFLICT', function () {",
+              "    pm.response.to.have.status(409);",
+              "    pm.expect(pm.response.json().code).to.eql('CONFLICT');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json", "type": "text" },
+          { "key": "Authorization", "value": "Bearer {{helperToken}}", "type": "text" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"message\": \"Trying to send the same offer twice.\",\n  \"hours\": 1.5\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": "{{baseUrl}}/api/requests/{{requestId}}/offers"
+      },
+      "response": []
+    },
+    {
+      "name": "10 - Owner reads the offers",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('The owner sees the pending offer', function () {",
+              "    pm.response.to.have.status(200);",
+              "    const body = pm.response.json();",
+              "    pm.expect(body).to.be.an('array');",
+              "    const offer = body.find(o => String(o.id) === String(pm.collectionVariables.get('offerId')));",
+              "    pm.expect(offer, 'created offer').to.exist;",
+              "    pm.expect(offer.status).to.eql('Pending');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{requesterToken}}", "type": "text" }
+        ],
+        "url": "{{baseUrl}}/api/requests/{{requestId}}/offers"
+      },
+      "response": []
+    },
+    {
+      "name": "11 - Error: non-owner reads offers -> 403",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Only the request owner can list offers', function () {",
+              "    pm.response.to.have.status(403);",
+              "    pm.expect(pm.response.json().code).to.eql('FORBIDDEN');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{helperToken}}", "type": "text" }
+        ],
+        "url": "{{baseUrl}}/api/requests/{{requestId}}/offers"
+      },
+      "response": []
+    },
+    {
+      "name": "12 - Requester accepts the offer",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Accept moves the request to InProgress and locks 1.5 hours', function () {",
+              "    pm.response.to.have.status(200);",
+              "    const body = pm.response.json();",
+              "    pm.expect(body.status).to.eql('InProgress');",
+              "    pm.expect(String(body.acceptedOfferId)).to.eql(String(pm.collectionVariables.get('offerId')));",
+              "    pm.expect(body.acceptedHours).to.eql(1.5);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{requesterToken}}", "type": "text" }
+        ],
+        "url": "{{baseUrl}}/api/offers/{{offerId}}/accept"
+      },
+      "response": []
+    },
+    {
+      "name": "13 - Error: repeated accept -> 409",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('A second accept on the same offer is a 409 CONFLICT', function () {",
+              "    pm.response.to.have.status(409);",
+              "    pm.expect(pm.response.json().code).to.eql('CONFLICT');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{requesterToken}}", "type": "text" }
+        ],
+        "url": "{{baseUrl}}/api/offers/{{offerId}}/accept"
+      },
+      "response": []
+    },
+    {
+      "name": "14 - Requester balance after accept",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Balance is 2, locked is 1.5, available is 0.5', function () {",
+              "    pm.response.to.have.status(200);",
+              "    const body = pm.response.json();",
+              "    pm.expect(body.balance).to.eql(2);",
+              "    pm.expect(body.locked).to.eql(1.5);",
+              "    pm.expect(body.available).to.eql(0.5);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{requesterToken}}", "type": "text" }
+        ],
+        "url": "{{baseUrl}}/api/me/balance"
+      },
+      "response": []
+    },
+    {
+      "name": "15 - Requester completes the exchange",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Complete returns Completed and the actual hours', function () {",
+              "    pm.response.to.have.status(200);",
+              "    const body = pm.response.json();",
+              "    pm.expect(body.status).to.eql('Completed');",
+              "    pm.expect(body.actualHours).to.eql(1.5);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json", "type": "text" },
+          { "key": "Authorization", "value": "Bearer {{requesterToken}}", "type": "text" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"actualHours\": 1.5\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": "{{baseUrl}}/api/requests/{{requestId}}/complete"
+      },
+      "response": []
+    },
+    {
+      "name": "16 - Error: repeated complete -> 409",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('A second complete is a 409 and moves no more hours', function () {",
+              "    pm.response.to.have.status(409);",
+              "    pm.expect(pm.response.json().code).to.eql('CONFLICT');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json", "type": "text" },
+          { "key": "Authorization", "value": "Bearer {{requesterToken}}", "type": "text" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"actualHours\": 1.5\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": "{{baseUrl}}/api/requests/{{requestId}}/complete"
+      },
+      "response": []
+    },
+    {
+      "name": "17 - Error: cancel a completed request -> 409",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Completed is a final state; cancel is a 409 CONFLICT', function () {",
+              "    pm.response.to.have.status(409);",
+              "    pm.expect(pm.response.json().code).to.eql('CONFLICT');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{requesterToken}}", "type": "text" }
+        ],
+        "url": "{{baseUrl}}/api/requests/{{requestId}}/cancel"
+      },
+      "response": []
+    },
+    {
+      "name": "18 - Requester reviews the helper",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Requester can review the helper once after completion', function () {",
+              "    pm.response.to.have.status(201);",
+              "    const body = pm.response.json();",
+              "    pm.expect(body.id).to.be.a('number');",
+              "    pm.collectionVariables.set('reviewId', body.id);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json", "type": "text" },
+          { "key": "Authorization", "value": "Bearer {{requesterToken}}", "type": "text" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"rating\": 5,\n  \"comment\": \"Excellent plumbing work.\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": "{{baseUrl}}/api/requests/{{requestId}}/reviews"
+      },
+      "response": []
+    },
+    {
+      "name": "19 - Helper reviews the requester",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Helper can review the requester once after completion', function () {",
+              "    pm.response.to.have.status(201);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json", "type": "text" },
+          { "key": "Authorization", "value": "Bearer {{helperToken}}", "type": "text" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"rating\": 4,\n  \"comment\": \"Clear instructions and quick payment in hours.\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": "{{baseUrl}}/api/requests/{{requestId}}/reviews"
+      },
+      "response": []
+    },
+    {
+      "name": "20 - Error: duplicate review -> 409",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('A second review by the same person is a 409 CONFLICT', function () {",
+              "    pm.response.to.have.status(409);",
+              "    pm.expect(pm.response.json().code).to.eql('CONFLICT');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json", "type": "text" },
+          { "key": "Authorization", "value": "Bearer {{requesterToken}}", "type": "text" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"rating\": 5,\n  \"comment\": \"Trying to review twice.\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": "{{baseUrl}}/api/requests/{{requestId}}/reviews"
+      },
+      "response": []
+    },
+    {
+      "name": "21 - Requester balance after completion",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Requester balance is 0.5 with no locked hours', function () {",
+              "    pm.response.to.have.status(200);",
+              "    const body = pm.response.json();",
+              "    pm.expect(body.balance).to.eql(0.5);",
+              "    pm.expect(body.locked).to.eql(0);",
+              "    pm.expect(body.available).to.eql(0.5);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{requesterToken}}", "type": "text" }
+        ],
+        "url": "{{baseUrl}}/api/me/balance"
+      },
+      "response": []
+    },
+    {
+      "name": "22 - Helper balance after completion",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Helper balance is 3.5 (2 welcome + 1.5 earned)', function () {",
+              "    pm.response.to.have.status(200);",
+              "    const body = pm.response.json();",
+              "    pm.expect(body.balance).to.eql(3.5);",
+              "    pm.expect(body.locked).to.eql(0);",
+              "    pm.expect(body.available).to.eql(3.5);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{helperToken}}", "type": "text" }
+        ],
+        "url": "{{baseUrl}}/api/me/balance"
+      },
+      "response": []
+    },
+    {
+      "name": "23 - Requester statement",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Statement shows the welcome bonus and the exchange debit', function () {",
+              "    pm.response.to.have.status(200);",
+              "    const body = pm.response.json();",
+              "    pm.expect(body.closingBalance).to.eql(0.5);",
+              "    pm.expect(body.entries.length).to.be.at.least(2);",
+              "    const types = body.entries.map(e => e.type);",
+              "    pm.expect(types).to.include('WelcomeBonus');",
+              "    pm.expect(types).to.include('ExchangeDebit');",
+              "    pm.expect(body.entries[body.entries.length - 1].runningBalance).to.eql(0.5);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{requesterToken}}", "type": "text" }
+        ],
+        "url": "{{baseUrl}}/api/me/statement?from=2020-01-01&to=2030-01-01"
+      },
+      "response": []
+    },
+    {
+      "name": "24 - Member directory",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Directory includes the new helper with skills and badges', function () {",
+              "    pm.response.to.have.status(200);",
+              "    const body = pm.response.json();",
+              "    pm.expect(body).to.be.an('array');",
+              "    const helper = body.find(m => String(m.id) === String(pm.collectionVariables.get('helperId')));",
+              "    pm.expect(helper, 'new helper').to.exist;",
+              "    pm.expect(helper.skills.length).to.be.greaterThan(0);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/api/members"
+      },
+      "response": []
+    },
+    {
+      "name": "25 - Helper profile with badge and rating",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Helper earned FIRST_HAND, a 5.0 rating, and 1.5 hours given', function () {",
+              "    pm.response.to.have.status(200);",
+              "    const body = pm.response.json();",
+              "    pm.expect(body.badges.some(b => b.code === 'FIRST_HAND')).to.eql(true);",
+              "    pm.expect(body.averageRating).to.eql(5);",
+              "    pm.expect(body.reviewCount).to.be.at.least(1);",
+              "    pm.expect(body.hoursGiven).to.eql(1.5);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/api/members/{{helperId}}"
+      },
+      "response": []
+    },
+    {
+      "name": "26 - Error: Member calls moderator endpoint -> 403",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('A Member JWT cannot list admin members', function () {",
+              "    pm.response.to.have.status(403);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{requesterToken}}", "type": "text" }
+        ],
+        "url": "{{baseUrl}}/api/admin/members"
+      },
+      "response": []
+    },
+    {
+      "name": "27 - Moderator suspends the requester",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Moderator suspend returns 204', function () {",
+              "    pm.response.to.have.status(204);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Content-Type", "value": "application/json", "type": "text" },
+          { "key": "Authorization", "value": "Bearer {{moderatorToken}}", "type": "text" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"reason\": \"Postman BR-14 suspension check\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": "{{baseUrl}}/api/admin/members/{{requesterId}}/suspend"
+      },
+      "response": []
+    },
+    {
+      "name": "28 - Error: old token after suspension -> 403",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('The JWT issued before suspension can no longer create a request', function () {",
+              "    pm.response.to.have.status(403);",
+              "    pm.expect(pm.response.json().code).to.eql('FORBIDDEN');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json", "type": "text" },
+          { "key": "Authorization", "value": "Bearer {{requesterToken}}", "type": "text" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Suspended request {{runId}}\",\n  \"description\": \"This must be refused even though the JWT is still valid.\",\n  \"categoryId\": {{categoryId}},\n  \"district\": \"Nasr City\",\n  \"estimatedHours\": 1,\n  \"neededBy\": \"{{neededBy}}\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": "{{baseUrl}}/api/requests"
+      },
+      "response": []
+    },
+    {
+      "name": "29 - Error: suspended login -> 403",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('A suspended member cannot log in', function () {",
+              "    pm.response.to.have.status(403);",
+              "    pm.expect(pm.response.json().code).to.eql('FORBIDDEN');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json", "type": "text" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{requesterEmail}}\",\n  \"password\": \"{{password}}\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": "{{baseUrl}}/api/auth/login"
+      },
+      "response": []
+    },
+    {
+      "name": "30 - Moderator reinstates the requester",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Moderator reinstate returns 204', function () {",
+              "    pm.response.to.have.status(204);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{moderatorToken}}", "type": "text" }
+        ],
+        "url": "{{baseUrl}}/api/admin/members/{{requesterId}}/reinstate"
+      },
+      "response": []
+    },
+    {
+      "name": "31 - Login works again after reinstatement",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Reinstated member can log in again', function () {",
+              "    pm.response.to.have.status(200);",
+              "    const body = pm.response.json();",
+              "    pm.expect(body.token).to.be.a('string').and.not.empty;",
+              "    pm.collectionVariables.set('requesterTokenAfterReinstate', body.token);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json", "type": "text" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{requesterEmail}}\",\n  \"password\": \"{{password}}\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": "{{baseUrl}}/api/auth/login"
+      },
+      "response": []
+    },
+    {
+      "name": "32 - Moderator creates a category",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Moderator can create a category', function () {",
+              "    pm.response.to.have.status(201);",
+              "    const body = pm.response.json();",
+              "    pm.expect(body.name).to.eql(pm.collectionVariables.get('categoryName'));",
+              "    pm.collectionVariables.set('createdCategoryId', body.id);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json", "type": "text" },
+          { "key": "Authorization", "value": "Bearer {{moderatorToken}}", "type": "text" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"{{categoryName}}\",\n  \"description\": \"Created by the Postman collection to verify BR-15 audit logging.\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": "{{baseUrl}}/api/categories"
+      },
+      "response": []
+    },
+    {
+      "name": "33 - Moderator updates the category",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Moderator can update the category', function () {",
+              "    pm.response.to.have.status(200);",
+              "    pm.expect(pm.response.json().name).to.eql(pm.collectionVariables.get('categoryName') + ' Updated');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Content-Type", "value": "application/json", "type": "text" },
+          { "key": "Authorization", "value": "Bearer {{moderatorToken}}", "type": "text" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"{{categoryName}} Updated\",\n  \"description\": \"Updated by the Postman collection.\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": "{{baseUrl}}/api/categories/{{createdCategoryId}}"
+      },
+      "response": []
+    },
+    {
+      "name": "34 - Moderator deletes the category",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Moderator can delete an unused category', function () {",
+              "    pm.response.to.have.status(204);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "DELETE",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{moderatorToken}}", "type": "text" }
+        ],
+        "url": "{{baseUrl}}/api/categories/{{createdCategoryId}}"
+      },
+      "response": []
+    },
+    {
+      "name": "35 - Audit log contains the moderator actions",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Create, update, delete, and suspend are all audited', function () {",
+              "    pm.response.to.have.status(200);",
+              "    const body = pm.response.json();",
+              "    pm.expect(body).to.be.an('array');",
+              "    const actions = body.map(a => a.action);",
+              "    pm.expect(actions).to.include('CreateCategory');",
+              "    pm.expect(actions).to.include('UpdateCategory');",
+              "    pm.expect(actions).to.include('DeleteCategory');",
+              "    pm.expect(actions).to.include('SuspendMember');",
+              "    pm.expect(body.every(a => a.source === 'Api')).to.eql(true);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{moderatorToken}}", "type": "text" }
+        ],
+        "url": "{{baseUrl}}/api/admin/audit-logs?take=100"
+      },
+      "response": []
+    },
+    {
+      "name": "36 - Final stats reflect the completed exchange",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Stats include at least one completed exchange and 1.5 hours', function () {",
+              "    pm.response.to.have.status(200);",
+              "    const body = pm.response.json();",
+              "    pm.expect(body.completedExchanges).to.be.at.least(1);",
+              "    pm.expect(body.hoursExchanged).to.be.at.least(1.5);",
+              "    pm.expect(body.members).to.be.at.least(12);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/api/stats"
+      },
+      "response": []
+    }
+  ]
+}

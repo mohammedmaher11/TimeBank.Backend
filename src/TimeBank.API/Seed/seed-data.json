@@ -1,0 +1,536 @@
+{
+  "_readme": "Starter data for TimeBank. Load it with System.Text.Json in your DataSeeder ONLY when the database is empty. Every member starts with the 2 welcome hours (BR-02) as a WelcomeBonus ledger entry. All members share the dev-only password below - hash it with BCrypt before saving, never store it as plain text. The categories and skills here are the full, fixed list: members pick from these existing skills (and set their level) - there is no Skills CRUD and members never create new skills. Ids here are for linking items inside this file; your database may generate its own ids.",
+  "devPassword": "Sa3a@2026",
+  "welcomeBonusHours": 2.0,
+  "badges": [
+    {
+      "code": "FIRST_HAND",
+      "name": "First Hand",
+      "icon": "🥉",
+      "description": "Completed your first help for another member."
+    },
+    {
+      "code": "TEN_HOURS_HERO",
+      "name": "Ten Hours Hero",
+      "icon": "⏱️",
+      "description": "Gave 10 or more hours in total."
+    },
+    {
+      "code": "GOOD_NEIGHBOR",
+      "name": "Good Neighbor",
+      "icon": "🏘️",
+      "description": "Helped 5 different members."
+    }
+  ],
+  "categories": [
+    {
+      "id": 1,
+      "name": "Home Repair",
+      "skills": [
+        {
+          "id": 1,
+          "name": "Plumbing"
+        },
+        {
+          "id": 2,
+          "name": "Electrical"
+        },
+        {
+          "id": 3,
+          "name": "Carpentry"
+        },
+        {
+          "id": 4,
+          "name": "Painting"
+        },
+        {
+          "id": 5,
+          "name": "AC Maintenance"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Tutoring",
+      "skills": [
+        {
+          "id": 6,
+          "name": "Math"
+        },
+        {
+          "id": 7,
+          "name": "Physics"
+        },
+        {
+          "id": 8,
+          "name": "Arabic"
+        },
+        {
+          "id": 9,
+          "name": "English"
+        },
+        {
+          "id": 10,
+          "name": "Programming Basics"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Tech Help",
+      "skills": [
+        {
+          "id": 11,
+          "name": "PC Repair"
+        },
+        {
+          "id": 12,
+          "name": "Phone Setup"
+        },
+        {
+          "id": 13,
+          "name": "Home Wi-Fi"
+        },
+        {
+          "id": 14,
+          "name": "Microsoft Office"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "Cooking",
+      "skills": [
+        {
+          "id": 15,
+          "name": "Egyptian Home Cooking"
+        },
+        {
+          "id": 16,
+          "name": "Baking"
+        },
+        {
+          "id": 17,
+          "name": "Meal Prep"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "Language Exchange",
+      "skills": [
+        {
+          "id": 18,
+          "name": "English Conversation"
+        },
+        {
+          "id": 19,
+          "name": "French Conversation"
+        },
+        {
+          "id": 20,
+          "name": "German Conversation"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "Errands",
+      "skills": [
+        {
+          "id": 21,
+          "name": "Grocery Shopping"
+        },
+        {
+          "id": 22,
+          "name": "Paperwork & Queues"
+        },
+        {
+          "id": 23,
+          "name": "Pharmacy Pickup"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "Crafts & Sewing",
+      "skills": [
+        {
+          "id": 24,
+          "name": "Sewing & Alterations"
+        },
+        {
+          "id": 25,
+          "name": "Knitting"
+        },
+        {
+          "id": 26,
+          "name": "Handmade Gifts"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "name": "Elderly Company",
+      "skills": [
+        {
+          "id": 27,
+          "name": "Visits & Conversation"
+        },
+        {
+          "id": 28,
+          "name": "Reading Aloud"
+        },
+        {
+          "id": 29,
+          "name": "Walk Companion"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "name": "Pet Care",
+      "skills": [
+        {
+          "id": 30,
+          "name": "Dog Walking"
+        },
+        {
+          "id": 31,
+          "name": "Cat Sitting"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "name": "Design & Media",
+      "skills": [
+        {
+          "id": 32,
+          "name": "Logo Design"
+        },
+        {
+          "id": 33,
+          "name": "Photography"
+        },
+        {
+          "id": 34,
+          "name": "Video Editing"
+        }
+      ]
+    }
+  ],
+  "members": [
+    {
+      "id": 1,
+      "fullName": "Mona Adel",
+      "email": "mona.adel@sa3a.test",
+      "district": "Nasr City",
+      "bio": "English teacher. My washing machine and I are not friends.",
+      "role": "Moderator",
+      "skills": [
+        {
+          "skillId": 9,
+          "skill": "English",
+          "level": "Expert"
+        },
+        {
+          "skillId": 18,
+          "skill": "English Conversation",
+          "level": "Expert"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "fullName": "Karim Saeed",
+      "email": "karim.saeed@sa3a.test",
+      "district": "Nasr City",
+      "bio": "Plumber for 12 years. Father of a very curious 10-year-old.",
+      "role": "Member",
+      "skills": [
+        {
+          "skillId": 1,
+          "skill": "Plumbing",
+          "level": "Expert"
+        },
+        {
+          "skillId": 5,
+          "skill": "AC Maintenance",
+          "level": "Intermediate"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "fullName": "Fathy Abdelrahman",
+      "email": "fathy.abdelrahman@sa3a.test",
+      "district": "Heliopolis",
+      "bio": "Retired engineer. Best molokhia in Cairo, I promise.",
+      "role": "Member",
+      "skills": [
+        {
+          "skillId": 15,
+          "skill": "Egyptian Home Cooking",
+          "level": "Expert"
+        },
+        {
+          "skillId": 6,
+          "skill": "Math",
+          "level": "Expert"
+        },
+        {
+          "skillId": 27,
+          "skill": "Visits & Conversation",
+          "level": "Intermediate"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "fullName": "Nour Hassan",
+      "email": "nour.hassan@sa3a.test",
+      "district": "Maadi",
+      "bio": "Graphic designer who loves dogs more than people.",
+      "role": "Member",
+      "skills": [
+        {
+          "skillId": 32,
+          "skill": "Logo Design",
+          "level": "Expert"
+        },
+        {
+          "skillId": 30,
+          "skill": "Dog Walking",
+          "level": "Intermediate"
+        },
+        {
+          "skillId": 33,
+          "skill": "Photography",
+          "level": "Beginner"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "fullName": "Youssef Tarek",
+      "email": "youssef.tarek@sa3a.test",
+      "district": "Dokki",
+      "bio": "CS student. I fix laptops between lectures.",
+      "role": "Member",
+      "skills": [
+        {
+          "skillId": 11,
+          "skill": "PC Repair",
+          "level": "Intermediate"
+        },
+        {
+          "skillId": 13,
+          "skill": "Home Wi-Fi",
+          "level": "Intermediate"
+        },
+        {
+          "skillId": 10,
+          "skill": "Programming Basics",
+          "level": "Intermediate"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "fullName": "Salma Ibrahim",
+      "email": "salma.ibrahim@sa3a.test",
+      "district": "Shubra",
+      "bio": "Tailor and mother of three. Ask me about hems.",
+      "role": "Member",
+      "skills": [
+        {
+          "skillId": 24,
+          "skill": "Sewing & Alterations",
+          "level": "Expert"
+        },
+        {
+          "skillId": 25,
+          "skill": "Knitting",
+          "level": "Intermediate"
+        },
+        {
+          "skillId": 16,
+          "skill": "Baking",
+          "level": "Intermediate"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "fullName": "Omar Khaled",
+      "email": "omar.khaled@sa3a.test",
+      "district": "6th of October",
+      "bio": "Electrician on weekdays, German learner on weekends.",
+      "role": "Member",
+      "skills": [
+        {
+          "skillId": 2,
+          "skill": "Electrical",
+          "level": "Expert"
+        },
+        {
+          "skillId": 3,
+          "skill": "Carpentry",
+          "level": "Beginner"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "fullName": "Hana Mostafa",
+      "email": "hana.mostafa@sa3a.test",
+      "district": "Zamalek",
+      "bio": "French teacher. Happy to read to anyone who misses books.",
+      "role": "Member",
+      "skills": [
+        {
+          "skillId": 19,
+          "skill": "French Conversation",
+          "level": "Expert"
+        },
+        {
+          "skillId": 28,
+          "skill": "Reading Aloud",
+          "level": "Expert"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "fullName": "Ahmed Ragab",
+      "email": "ahmed.ragab@sa3a.test",
+      "district": "Helwan",
+      "bio": "Free on Fridays. Good at queues and paperwork, sadly.",
+      "role": "Member",
+      "skills": [
+        {
+          "skillId": 22,
+          "skill": "Paperwork & Queues",
+          "level": "Intermediate"
+        },
+        {
+          "skillId": 21,
+          "skill": "Grocery Shopping",
+          "level": "Intermediate"
+        },
+        {
+          "skillId": 29,
+          "skill": "Walk Companion",
+          "level": "Beginner"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "fullName": "Laila Samir",
+      "email": "laila.samir@sa3a.test",
+      "district": "Mohandessin",
+      "bio": "Video editor. Will trade edits for French lessons.",
+      "role": "Member",
+      "skills": [
+        {
+          "skillId": 34,
+          "skill": "Video Editing",
+          "level": "Expert"
+        },
+        {
+          "skillId": 12,
+          "skill": "Phone Setup",
+          "level": "Intermediate"
+        }
+      ]
+    }
+  ],
+  "helpRequests": [
+    {
+      "id": 1,
+      "requesterId": 1,
+      "title": "Washing machine leaking from the bottom",
+      "description": "Water under the machine after every wash. Probably the hose or the pump.",
+      "categoryId": 1,
+      "category": "Home Repair",
+      "district": "Nasr City",
+      "estimatedHours": 1.5,
+      "neededBy": "2026-10-20",
+      "status": "Open"
+    },
+    {
+      "id": 2,
+      "requesterId": 2,
+      "title": "English revision for my son's exam",
+      "description": "Grade 5 English, mainly grammar and reading. Two sessions of 1 hour.",
+      "categoryId": 2,
+      "category": "Tutoring",
+      "district": "Nasr City",
+      "estimatedHours": 2.0,
+      "neededBy": "2026-10-15",
+      "status": "Open"
+    },
+    {
+      "id": 3,
+      "requesterId": 3,
+      "title": "Laptop is very slow",
+      "description": "Old laptop takes 5 minutes to start. Need a cleanup and maybe an SSD advice.",
+      "categoryId": 3,
+      "category": "Tech Help",
+      "district": "Heliopolis",
+      "estimatedHours": 1.0,
+      "neededBy": "2026-10-25",
+      "status": "Open"
+    },
+    {
+      "id": 4,
+      "requesterId": 6,
+      "title": "Logo for my small bakery",
+      "description": "Home bakery called 'Salma's Oven'. Simple and warm.",
+      "categoryId": 10,
+      "category": "Design & Media",
+      "district": "Shubra",
+      "estimatedHours": 3.0,
+      "neededBy": "2026-11-01",
+      "status": "Open"
+    },
+    {
+      "id": 5,
+      "requesterId": 7,
+      "title": "Shorten two pairs of trousers",
+      "description": "Need someone to show me how, not just do it.",
+      "categoryId": 7,
+      "category": "Crafts & Sewing",
+      "district": "6th of October",
+      "estimatedHours": 1.0,
+      "neededBy": "2026-10-30",
+      "status": "Open"
+    },
+    {
+      "id": 6,
+      "requesterId": 9,
+      "title": "Company for my grandmother on Thursdays",
+      "description": "She lives alone in Helwan and loves stories. One hour of conversation.",
+      "categoryId": 8,
+      "category": "Elderly Company",
+      "district": "Helwan",
+      "estimatedHours": 1.0,
+      "neededBy": "2026-10-17",
+      "status": "Open"
+    },
+    {
+      "id": 7,
+      "requesterId": 10,
+      "title": "French conversation practice",
+      "description": "A1 level, want to practice speaking before my course exam.",
+      "categoryId": 5,
+      "category": "Language Exchange",
+      "district": "Mohandessin",
+      "estimatedHours": 2.0,
+      "neededBy": "2026-11-05",
+      "status": "Open"
+    }
+  ]
+}

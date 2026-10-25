@@ -1,0 +1,73 @@
+# ---------------------------------------------------------------------------
+# .NET build and test output
+# ---------------------------------------------------------------------------
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+artifacts/
+publish/
+TestResults/
+*.trx
+*.coverage
+*.coverage.*
+coverage.*
+*.testsettings
+
+# ---------------------------------------------------------------------------
+# IDE and editor files
+# ---------------------------------------------------------------------------
+.vs/
+.vscode/
+.idea/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.DotSettings.user
+
+# ---------------------------------------------------------------------------
+# Local run output, logs, and packaged artifacts
+# ---------------------------------------------------------------------------
+.run/
+*.log
+*.zip
+
+# ---------------------------------------------------------------------------
+# Local configuration and secrets - never commit real credentials
+# ---------------------------------------------------------------------------
+appsettings.Local.json
+appsettings.*.local.json
+secrets.json
+*.pfx
+*.snk
+*.key
+
+# ---------------------------------------------------------------------------
+# Local databases and backups
+# ---------------------------------------------------------------------------
+*.mdf
+*.ldf
+*.bak
+*.db
+*.sqlite
+
+# ---------------------------------------------------------------------------
+# Optional Node.js/Newman tooling (not required by the .NET solution)
+# ---------------------------------------------------------------------------
+node_modules/
+npm-debug.log*
+yarn-error.log*
+
+# ---------------------------------------------------------------------------
+# Operating-system files
+# ---------------------------------------------------------------------------
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Application settings that may contain secrets
+**/appsettings.json
+**/appsettings.*.json
+!**/appsettings.example.json
+!**/appsettings.template.json

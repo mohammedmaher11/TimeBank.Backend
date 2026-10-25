@@ -1,0 +1,174 @@
+@host = http://localhost:5080
+
+# Paste a member JWT from POST /api/auth/login or /api/auth/register.
+@token = PASTE_MEMBER_JWT_HERE
+
+# Paste the seeded moderator JWT.
+@moderatorToken = PASTE_MODERATOR_JWT_HERE
+
+# Replace these ids with values returned by the requests below.
+@requestId = PASTE_REQUEST_ID_HERE
+@offerId = PASTE_OFFER_ID_HERE
+@memberId = PASTE_MEMBER_ID_HERE
+@newCategoryId = PASTE_NEW_CATEGORY_ID_HERE
+
+# Seeded Home Repair category, used when creating a request.
+@categoryId = 1
+@neededBy = 2026-12-31
+
+### Health
+GET {{host}}/health
+
+### Community stats
+GET {{host}}/api/stats
+
+### Seeded categories and skills
+GET {{host}}/api/categories
+
+### Login seeded moderator
+# Copy the token from the response into @moderatorToken.
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "mona.adel@sa3a.test",
+  "password": "Sa3a@2026"
+}
+
+### Register a member with an existing skill
+# Change the email on every run; emails are unique.
+POST {{host}}/api/auth/register
+Content-Type: application/json
+
+{
+  "fullName": "HTTP File Member",
+  "email": "http.member.20261025@example.test",
+  "password": "Test@2026!",
+  "district": "Nasr City",
+  "bio": "Created from TimeBank.API.http",
+  "skills": [
+    { "skillId": 1, "level": "Expert" }
+  ]
+}
+
+### Current member
+GET {{host}}/api/me
+Authorization: Bearer {{token}}
+
+### Current member balance
+GET {{host}}/api/me/balance
+Authorization: Bearer {{token}}
+
+### Create a request
+POST {{host}}/api/requests
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "title": "HTTP file: leaking kitchen sink",
+  "description": "The kitchen sink has leaked since this morning.",
+  "categoryId": {{categoryId}},
+  "district": "Nasr City",
+  "estimatedHours": 1.5,
+  "neededBy": "{{neededBy}}"
+}
+
+### Public request board
+GET {{host}}/api/requests?status=Open
+
+### Read one request
+GET {{host}}/api/requests/{{requestId}}
+
+### Send an offer (use a different member's token)
+POST {{host}}/api/requests/{{requestId}}/offers
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "message": "I can come on Thursday morning.",
+  "hours": 1.5
+}
+
+### Owner reads offers
+GET {{host}}/api/requests/{{requestId}}/offers
+Authorization: Bearer {{token}}
+
+### Owner accepts an offer
+POST {{host}}/api/offers/{{offerId}}/accept
+Authorization: Bearer {{token}}
+
+### Owner completes the exchange
+POST {{host}}/api/requests/{{requestId}}/complete
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "actualHours": 1.5
+}
+
+### Review the other party after completion
+POST {{host}}/api/requests/{{requestId}}/reviews
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "rating": 5,
+  "comment": "Excellent work."
+}
+
+### Member statement (stored procedure)
+GET {{host}}/api/me/statement?from=2026-01-01&to=2026-12-31
+Authorization: Bearer {{token}}
+
+### Public member directory
+GET {{host}}/api/members
+
+### Public member profile
+GET {{host}}/api/members/{{memberId}}
+
+### Moderator: suspend a member
+PUT {{host}}/api/admin/members/{{memberId}}/suspend
+Authorization: Bearer {{moderatorToken}}
+Content-Type: application/json
+
+{
+  "reason": "HTTP file suspension example"
+}
+
+### Moderator: reinstate a member
+PUT {{host}}/api/admin/members/{{memberId}}/reinstate
+Authorization: Bearer {{moderatorToken}}
+
+### Moderator: audit log
+GET {{host}}/api/admin/audit-logs?take=20
+Authorization: Bearer {{moderatorToken}}
+
+### Moderator: create a category
+POST {{host}}/api/categories
+Authorization: Bearer {{moderatorToken}}
+Content-Type: application/json
+
+{
+  "name": "HTTP File Category",
+  "description": "Created from TimeBank.API.http"
+}
+
+### Moderator: update a category
+PUT {{host}}/api/categories/{{newCategoryId}}
+Authorization: Bearer {{moderatorToken}}
+Content-Type: application/json
+
+{
+  "name": "HTTP File Category Updated",
+  "description": "Updated from TimeBank.API.http"
+}
+
+### Moderator: delete a category
+DELETE {{host}}/api/categories/{{newCategoryId}}
+Authorization: Bearer {{moderatorToken}}
+
+### Swagger UI
+GET {{host}}/swagger
+
+### OpenAPI document
+GET {{host}}/swagger/v1/swagger.json
